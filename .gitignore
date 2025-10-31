@@ -1,0 +1,6 @@
+*.apkvendor/
+
+*.aab.idea/
+.DS_Store
+fyne-cross/
+.fyne-cross/

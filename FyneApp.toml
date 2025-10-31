@@ -1,0 +1,8 @@
+Website = "https://github.com/oneclickvirt/ecs"
+
+[Details]
+Icon = "icon.png"
+Name = "GoECS"
+ID = "com.oneclickvirt.goecs"
+Version = "1.0.0"
+Build = 1
