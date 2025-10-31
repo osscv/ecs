@@ -1,7 +1,9 @@
-# APK and AAB files (keep .build directory)
+# APK and AAB files
 *.apk
-!.build/*.apk
 *.aab
+
+# Build directory (prevent large files from being committed)
+.build/
 
 # Vendor
 vendor/
