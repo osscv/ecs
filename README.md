@@ -29,7 +29,7 @@
 
 ### 前置要求
 
-1. Go 1.23+
+1. Go 1.25.3
 2. Android SDK
 3. Android NDK 25.2.9519653
 4. JDK 17+
