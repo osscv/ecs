@@ -251,17 +251,13 @@ jobs:
           ls -lh .build/
           du -sh .build/*
       
-      - name: Get or create release
+      - name: Get release
         id: get_release
         shell: bash
         run: |
           LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
           if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
-            echo "No existing release found, creating a new one"
-            gh release create "${{ needs.prepare.outputs.version }}" \
-              --title "Release ${{ needs.prepare.outputs.version }}" \
-              --notes "Automated build from ${{ github.sha }}"
-            RELEASE_TAG="${{ needs.prepare.outputs.version }}"
+            exit 1
           else
             RELEASE_TAG="$LATEST_RELEASE"
             echo "Found existing release: $RELEASE_TAG"
