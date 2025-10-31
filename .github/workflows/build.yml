@@ -220,8 +220,11 @@ jobs:
             fyne package -os darwin -name goecs --exe goecs-bin --app-version "${{ needs.prepare.outputs.app_version }}"
             
             if [ -d goecs.app ]; then
-              tar -czf .build/goecs-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz goecs.app
-              echo "macOS app 构建成功"
+              TARFILE="goecs-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
+              tar -czf "$TARFILE" goecs.app
+              mv "$TARFILE" .build/
+              echo "macOS app 构建成功，已创建: .build/$TARFILE"
+              ls -lh .build/
             else
               echo "macOS app 构建失败"
               exit 1
@@ -245,15 +248,34 @@ jobs:
       - name: List build artifacts
         shell: bash
         run: |
-          ls -lh .build/
-          du -sh .build/*
+          echo "=== 检查 .build 目录 ==="
+          if [ -d .build ]; then
+            echo ".build 目录存在"
+            ls -lh .build/
+            if [ -n "$(ls -A .build/)" ]; then
+              echo "=== 文件大小 ==="
+              du -sh .build/*
+              echo "=== 当前工作目录 ==="
+              pwd
+              echo "=== 绝对路径 ==="
+              ls -lh "$(pwd)/.build/"
+            else
+              echo "警告: .build 目录为空"
+            fi
+          else
+            echo "错误: .build 目录不存在"
+            exit 1
+          fi
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: goecs-${{ matrix.name }}-${{ needs.prepare.outputs.version }}
-          path: .build/*
+          path: |
+            .build/*.exe
+            .build/*.tar.gz
           retention-days: 90
+          if-no-files-found: error
 
   upload-to-release:
     name: Upload to Latest Release
@@ -278,15 +300,15 @@ jobs:
       - name: Get latest release
         id: get_release
         run: |
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName,url --jq '.[0]')
-          if [ -z "$LATEST_RELEASE" ]; then
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
             echo "No existing release found, creating a new one"
             gh release create "${{ needs.prepare.outputs.version }}" \
               --title "Release ${{ needs.prepare.outputs.version }}" \
               --notes "Automated build from ${{ github.sha }}"
             RELEASE_TAG="${{ needs.prepare.outputs.version }}"
           else
-            RELEASE_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tagName')
+            RELEASE_TAG="$LATEST_RELEASE"
             echo "Found existing release: $RELEASE_TAG"
           fi
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
