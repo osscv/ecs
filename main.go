@@ -24,8 +24,6 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Println("GoECS Android v1.0.0")
-		fmt.Println("基于 github.com/oneclickvirt/ecs v0.1.91")
 		fmt.Println("仅支持图形界面模式")
 		os.Exit(0)
 	}
@@ -48,9 +46,7 @@ func runGUIMode() {
 }
 
 func printHelp() {
-	fmt.Println(`
-GoECS Android - 服务器性能测试工具
-
+	fmt.Println(`说明：
 用法:
   goecs-android              启动图形界面
 
@@ -70,6 +66,5 @@ GoECS Android - 服务器性能测试工具
 
 更多信息:
   GitHub: https://github.com/oneclickvirt/ecs
-  分支: android-app
-`)
+  分支: android-app`)
 }
