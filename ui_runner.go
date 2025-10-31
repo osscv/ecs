@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/dialog"
+	"github.com/oneclickvirt/ecs/unlocktest"
 	"github.com/oneclickvirt/ecs/utils"
+	"github.com/oneclickvirt/pingtest/pt"
+	"github.com/oneclickvirt/portchecker/email"
 )
 
 // runTests 运行所有已选择的测试
@@ -85,7 +88,7 @@ func (ui *TestUI) runTests() {
 		wg1.Add(1)
 		go func() {
 			defer wg1.Done()
-			mediaInfo = utils.MediaTest(language)
+			mediaInfo = unlocktest.MediaTest(language)
 		}()
 	}
 
@@ -93,7 +96,7 @@ func (ui *TestUI) runTests() {
 		wg2.Add(1)
 		go func() {
 			defer wg2.Done()
-			emailInfo = utils.EmailCheck()
+			emailInfo = email.EmailCheck()
 		}()
 	}
 
@@ -101,7 +104,7 @@ func (ui *TestUI) runTests() {
 		wg3.Add(1)
 		go func() {
 			defer wg3.Done()
-			ptInfo = utils.PingTest()
+			ptInfo = pt.PingTest()
 		}()
 	}
 
