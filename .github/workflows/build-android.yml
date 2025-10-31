@@ -78,7 +78,7 @@ jobs:
             APP_VERSION=${VERSION#v}
           else
             # Use numeric version only for appVersion (required by fyne)
-            APP_VERSION="0.0.1
+            APP_VERSION="0.0.1"
             # Keep full version for filename
             VERSION=v0.0.1-$(date +%Y%m%d)-$(git rev-parse --short HEAD)
           fi
