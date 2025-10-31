@@ -237,8 +237,8 @@ jobs:
         run: |
           mkdir -p .build
           
-          # Build the package
-          fyne package -os ${{ matrix.platform }}/${{ matrix.arch }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}"
+          # Build the package (use -os without arch for native builds)
+          fyne package -os ${{ matrix.platform }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}"
           
           # Package the output
           if [ "${{ matrix.platform }}" == "darwin" ]; then
