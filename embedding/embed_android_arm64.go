@@ -1,5 +1,5 @@
-//go:build android && arm64
-// +build android,arm64
+//go:build android
+// +build android
 
 package embedding
 
