@@ -1,5 +1,4 @@
 //go:build darwin && arm64
-// +build darwin,arm64
 
 package embedding
 
@@ -15,7 +14,7 @@ var ecsBinary []byte
 
 func getECSBinary() ([]byte, error) {
 	if len(ecsBinary) == 0 {
-		return nil, fmt.Errorf("macOS ARM64 二进制文件未嵌入")
+		return nil, fmt.Errorf("Darwin ARM64 二进制文件未嵌入")
 	}
 	return ecsBinary, nil
 }
