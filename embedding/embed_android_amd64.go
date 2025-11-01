@@ -1,5 +1,4 @@
 //go:build android && amd64
-// +build android,amd64
 
 package embedding
 

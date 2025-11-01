@@ -140,8 +140,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
-          GOOS: android
-          GOARCH: arm64
         run: |
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}"
           if [ -f *.apk ]; then
@@ -157,8 +155,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
-          GOOS: android
-          GOARCH: amd64
         run: |
           fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}"
           if [ -f *.apk ]; then
