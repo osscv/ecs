@@ -20,3 +20,9 @@ fyne-cross/
 
 # Build binaries
 goecs-android
+goecs-desktop
+test-build
+
+# Embedded binaries (downloaded during build)
+binaries/goecs-*
+binaries/*.zip

@@ -5,13 +5,8 @@ import (
 	"sync"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
-)
-
-const (
-	// ecsVersion 使用核心包的版本号
-	ecsVersion = "v0.1.93"
-	width      = 80
 )
 
 // TestUI 测试界面结构体
@@ -32,6 +27,7 @@ type TestUI struct {
 	nt3Check       *widget.Check // 三网回程路由
 	speedCheck     *widget.Check // 网络测速
 	pingCheck      *widget.Check // 三网PING值
+	logCheck       *widget.Check // 启用日志记录
 
 	// 预设模式选择
 	presetSelect *widget.Select
@@ -51,12 +47,16 @@ type TestUI struct {
 	// 控制按钮
 	startButton *widget.Button
 	stopButton  *widget.Button
-	clearButton *widget.Button
 
-	// 结果显示
-	resultText  *widget.RichText
+	// 结果显示 - 使用终端输出组件
+	terminal    *TerminalOutput
 	progressBar *widget.ProgressBar
 	statusLabel *widget.Label
+
+	// 日志相关
+	logViewer *widget.Entry      // 日志查看器
+	logTab    *fyne.Container    // 日志标签页内容
+	mainTabs  *container.AppTabs // 主标签页容器
 
 	// 运行状态
 	isRunning bool

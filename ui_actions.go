@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
@@ -128,18 +133,24 @@ func (ui *TestUI) startTests() {
 
 	ui.startButton.Disable()
 	ui.stopButton.Enable()
-	ui.clearButton.Disable()
 	ui.progressBar.Show()
 	ui.statusLabel.SetText("测试运行中...")
-	// 清空结果显示
-	ui.resultText.Segments = []widget.RichTextSegment{}
-	ui.resultText.Refresh()
+
+	// 如果启用了日志，显示日志标签页
+	if ui.logCheck != nil && ui.logCheck.Checked {
+		ui.showLogTab()
+	} else {
+		ui.hideLogTab()
+	}
+
+	// 清空终端输出
+	if ui.terminal != nil {
+		ui.terminal.Clear()
+	}
 
 	ui.cancelCtx, ui.cancelFn = context.WithCancel(context.Background())
-	go ui.runTests()
-}
-
-// stopTests 停止正在执行的测试
+	go ui.runTestsWithExecutor()
+} // stopTests 停止正在执行的测试
 func (ui *TestUI) stopTests() {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
@@ -148,24 +159,24 @@ func (ui *TestUI) stopTests() {
 		ui.cancelFn()
 	}
 	ui.statusLabel.SetText("测试已停止")
-	ui.appendResult("\n\n========== 测试被用户中断 ==========\n")
+	ui.terminal.AppendText("\n\n========== 测试被用户中断 ==========\n")
 	ui.resetUIState()
 }
 
 // clearResults 清空测试结果
 func (ui *TestUI) clearResults() {
-	ui.resultText.Segments = []widget.RichTextSegment{}
-	ui.resultText.Refresh()
+	if ui.terminal != nil {
+		ui.terminal.Clear()
+	}
 	ui.statusLabel.SetText("就绪")
 	ui.progressBar.SetValue(0)
 }
 
 // exportResults 导出测试结果
 func (ui *TestUI) exportResults() {
-	// 从 RichText 提取纯文本内容
 	var content string
-	for _, seg := range ui.resultText.Segments {
-		content += seg.Textual()
+	if ui.terminal != nil {
+		content = ui.terminal.GetText()
 	}
 
 	if content == "" {
@@ -191,4 +202,121 @@ func (ui *TestUI) exportResults() {
 
 		dialog.ShowInformation("成功", "结果已导出到: "+writer.URI().Path(), ui.window)
 	}, ui.window)
+}
+
+// showLogTab 显示日志标签页
+func (ui *TestUI) showLogTab() {
+	// 如果日志标签页还不存在，创建它
+	if ui.logTab == nil {
+		ui.logTab = ui.createLogTab()
+		logTabItem := container.NewTabItem("日志查看", ui.logTab)
+		ui.mainTabs.Append(logTabItem)
+	}
+
+	// 切换到日志标签页
+	ui.mainTabs.SelectIndex(2) // 0=配置, 1=结果, 2=日志
+}
+
+// hideLogTab 隐藏日志标签页
+func (ui *TestUI) hideLogTab() {
+	// 如果有日志标签页，移除它
+	if ui.logTab != nil && len(ui.mainTabs.Items) > 2 {
+		ui.mainTabs.Remove(ui.mainTabs.Items[2])
+		ui.logTab = nil
+		ui.logViewer = nil
+	}
+}
+
+// createLogTab 创建日志查看标签页
+func (ui *TestUI) createLogTab() *fyne.Container {
+	// 创建日志查看器
+	ui.logViewer = widget.NewMultiLineEntry()
+	ui.logViewer.Wrapping = fyne.TextWrapWord
+	ui.logViewer.SetText("日志文件内容将在这里显示...")
+
+	// 刷新按钮
+	refreshButton := widget.NewButton("刷新日志", ui.refreshLog)
+
+	// 清空按钮
+	clearLogButton := widget.NewButton("清空显示", func() {
+		if ui.logViewer != nil {
+			ui.logViewer.SetText("")
+		}
+	})
+
+	topBar := container.NewHBox(
+		refreshButton,
+		clearLogButton,
+	)
+
+	logScroll := container.NewScroll(ui.logViewer)
+
+	return container.NewBorder(
+		topBar,    // Top: 操作按钮
+		nil,       // Bottom
+		nil,       // Left
+		nil,       // Right
+		logScroll, // Center: 日志内容
+	)
+}
+
+// refreshLog 刷新日志内容
+func (ui *TestUI) refreshLog() {
+	if ui.logViewer == nil {
+		return
+	}
+
+	// 获取当前目录
+	currentDir, err := os.Getwd()
+	if err != nil {
+		ui.logViewer.SetText("错误: 无法获取当前目录\n" + err.Error())
+		return
+	}
+
+	// 查找所有 .log 文件
+	logFiles, err := filepath.Glob(filepath.Join(currentDir, "*.log"))
+	if err != nil {
+		ui.logViewer.SetText("错误: 无法搜索日志文件\n" + err.Error())
+		return
+	}
+
+	if len(logFiles) == 0 {
+		ui.logViewer.SetText("当前目录下没有找到 .log 文件\n\n请确保已启用日志记录并运行测试。")
+		return
+	}
+
+	// 找到最新的日志文件
+	var latestLog string
+	var latestTime time.Time
+
+	for _, logFile := range logFiles {
+		info, err := os.Stat(logFile)
+		if err != nil {
+			continue
+		}
+		if latestLog == "" || info.ModTime().After(latestTime) {
+			latestLog = logFile
+			latestTime = info.ModTime()
+		}
+	}
+
+	if latestLog == "" {
+		ui.logViewer.SetText("没有找到有效的日志文件")
+		return
+	}
+
+	// 读取日志文件内容
+	content, err := os.ReadFile(latestLog)
+	if err != nil {
+		ui.logViewer.SetText("错误: 无法读取日志文件 " + latestLog + "\n" + err.Error())
+		return
+	}
+
+	// 显示日志内容
+	logContent := "日志文件: " + filepath.Base(latestLog) + "\n"
+	logContent += "修改时间: " + latestTime.Format("2006-01-02 15:04:05") + "\n"
+	logContent += strings.Repeat("=", 60) + "\n\n"
+	logContent += string(content)
+
+	ui.logViewer.SetText(logContent)
 }

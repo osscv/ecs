@@ -6,8 +6,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// createTestOptionsTab 创建测试项目选择选项卡
-func (ui *TestUI) createTestOptionsTab() fyne.CanvasObject {
+// createOptionsPanel 创建选项面板（测试项目 + 配置选项整合在一起）
+func (ui *TestUI) createOptionsPanel() fyne.CanvasObject {
 	// 预设模式选择
 	ui.presetSelect = widget.NewSelect(
 		[]string{
@@ -26,9 +26,9 @@ func (ui *TestUI) createTestOptionsTab() fyne.CanvasObject {
 	)
 	ui.presetSelect.Selected = "自定义"
 
-	presetCard := widget.NewCard("预设模式", "选择预设的测试组合", ui.presetSelect)
+	presetSection := widget.NewCard("预设模式", "快速选择测试组合", ui.presetSelect)
 
-	// 创建所有测试项复选框
+	// === 测试项目复选框 ===
 	ui.basicCheck = widget.NewCheck("基础信息测试", nil)
 	ui.basicCheck.Checked = true
 
@@ -65,6 +65,9 @@ func (ui *TestUI) createTestOptionsTab() fyne.CanvasObject {
 	ui.pingCheck = widget.NewCheck("三网PING值检测", nil)
 	ui.pingCheck.Checked = false
 
+	ui.logCheck = widget.NewCheck("启用日志记录", nil)
+	ui.logCheck.Checked = false
+
 	// 全选/取消全选按钮
 	selectAllBtn := widget.NewButton("全选", func() {
 		ui.setAllChecks(true)
@@ -76,68 +79,54 @@ func (ui *TestUI) createTestOptionsTab() fyne.CanvasObject {
 
 	buttonRow := container.NewHBox(selectAllBtn, deselectAllBtn)
 
-	// 分组显示
-	basicGroup := widget.NewCard("基础测试", "", container.NewVBox(
+	// 测试项目分组 - 使用网格布局，每行2个
+	basicTests := container.NewVBox(
 		ui.basicCheck,
 		ui.cpuCheck,
 		ui.memoryCheck,
 		ui.diskCheck,
-	))
+	)
 
-	networkGroup := widget.NewCard("网络测试", "", container.NewVBox(
+	networkTests := container.NewVBox(
 		ui.speedCheck,
 		ui.securityCheck,
 		ui.emailCheck,
 		ui.backtraceCheck,
+	)
+
+	advancedTests := container.NewVBox(
 		ui.nt3Check,
 		ui.pingCheck,
-	))
-
-	mediaGroup := widget.NewCard("流媒体测试", "", container.NewVBox(
 		ui.commCheck,
 		ui.unlockCheck,
+	)
+
+	testsGrid := container.NewGridWithColumns(3,
+		basicTests,
+		networkTests,
+		advancedTests,
+	)
+
+	testsSection := widget.NewCard("测试项目", "", container.NewVBox(
+		buttonRow,
+		testsGrid,
 	))
 
-	// 控制按钮
-	ui.startButton = widget.NewButton("开始测试", ui.startTests)
-	ui.startButton.Importance = widget.HighImportance
+	// === 配置选项 ===
+	configSection := ui.createConfigSection()
 
-	ui.stopButton = widget.NewButton("停止测试", ui.stopTests)
-	ui.stopButton.Disable()
-
-	ui.clearButton = widget.NewButton("清空结果", ui.clearResults)
-
-	controlButtons := container.NewVBox(
-		ui.startButton,
-		container.NewGridWithColumns(2, ui.stopButton, ui.clearButton),
+	// 整合所有内容
+	allContent := container.NewVBox(
+		presetSection,
+		testsSection,
+		configSection,
 	)
 
-	controlCard := widget.NewCard("控制", "", controlButtons)
-
-	// 组合布局 - 使用 Split 容器确保左右平均分配空间
-	leftColumn := container.NewVBox(
-		presetCard,
-		buttonRow,
-		basicGroup,
-	)
-
-	rightColumn := container.NewVBox(
-		networkGroup,
-		mediaGroup,
-		controlCard,
-	)
-
-	leftScroll := container.NewScroll(leftColumn)
-	leftScroll.SetMinSize(fyne.NewSize(400, 0))
-
-	rightScroll := container.NewScroll(rightColumn)
-	rightScroll.SetMinSize(fyne.NewSize(400, 0))
-
-	return container.NewHSplit(leftScroll, rightScroll)
+	return allContent
 }
 
-// createConfigTab 创建配置选项选项卡
-func (ui *TestUI) createConfigTab() fyne.CanvasObject {
+// createConfigSection 创建配置选项区域
+func (ui *TestUI) createConfigSection() fyne.CanvasObject {
 	// 语言选择
 	ui.languageSelect = widget.NewSelect(
 		[]string{"中文", "English"},
@@ -158,21 +147,12 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 	)
 	ui.threadModeSelect.Selected = "multi"
 
-	cpuCard := widget.NewCard("CPU测试配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("测试方法:"), nil, ui.cpuMethodSelect),
-		container.NewBorder(nil, nil, widget.NewLabel("线程模式:"), nil, ui.threadModeSelect),
-	))
-
 	// 内存配置
 	ui.memoryMethodSelect = widget.NewSelect(
 		[]string{"auto", "stream", "sysbench", "dd", "winsat"},
 		func(value string) {},
 	)
 	ui.memoryMethodSelect.Selected = "auto"
-
-	memoryCard := widget.NewCard("内存测试配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("测试方法:"), nil, ui.memoryMethodSelect),
-	))
 
 	// 磁盘配置
 	ui.diskMethodSelect = widget.NewSelect(
@@ -187,12 +167,6 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 	ui.diskMultiCheck = widget.NewCheck("启用多磁盘检测", nil)
 	ui.diskMultiCheck.Checked = false
 
-	diskCard := widget.NewCard("磁盘测试配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("测试方法:"), nil, ui.diskMethodSelect),
-		container.NewBorder(nil, nil, widget.NewLabel("测试路径:"), nil, ui.diskPathEntry),
-		ui.diskMultiCheck,
-	))
-
 	// NT3 配置
 	ui.nt3LocationSelect = widget.NewSelect(
 		[]string{"GZ", "SH", "BJ", "CD", "ALL"},
@@ -206,72 +180,57 @@ func (ui *TestUI) createConfigTab() fyne.CanvasObject {
 	)
 	ui.nt3TypeSelect.Selected = "ipv4"
 
-	nt3Card := widget.NewCard("三网回程配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("测试地点:"), nil, ui.nt3LocationSelect),
-		container.NewBorder(nil, nil, widget.NewLabel("测试类型:"), nil, ui.nt3TypeSelect),
-	))
-
 	// 测速配置
 	ui.spNumEntry = widget.NewEntry()
 	ui.spNumEntry.SetText("2")
 	ui.spNumEntry.SetPlaceHolder("每运营商测速节点数")
 
-	speedCard := widget.NewCard("测速配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("节点数/运营商:"), nil, ui.spNumEntry),
-	))
-
-	// 通用配置
-	generalCard := widget.NewCard("通用配置", "", container.NewVBox(
-		container.NewBorder(nil, nil, widget.NewLabel("语言:"), nil, ui.languageSelect),
-	))
-
-	leftColumn := container.NewVBox(
-		generalCard,
-		cpuCard,
-		memoryCard,
+	// 使用表单布局更紧凑
+	configForm := container.NewVBox(
+		widget.NewLabel("通用配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("语言:"),
+			ui.languageSelect,
+		),
+		ui.logCheck, // 日志选项
+		widget.NewSeparator(),
+		widget.NewLabel("CPU配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("测试方法:"),
+			ui.cpuMethodSelect,
+			widget.NewLabel("线程模式:"),
+			ui.threadModeSelect,
+		),
+		widget.NewSeparator(),
+		widget.NewLabel("内存配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("测试方法:"),
+			ui.memoryMethodSelect,
+		),
+		widget.NewSeparator(),
+		widget.NewLabel("磁盘配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("测试方法:"),
+			ui.diskMethodSelect,
+			widget.NewLabel("测试路径:"),
+			ui.diskPathEntry,
+		),
+		ui.diskMultiCheck,
+		widget.NewSeparator(),
+		widget.NewLabel("三网回程配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("测试地点:"),
+			ui.nt3LocationSelect,
+			widget.NewLabel("测试类型:"),
+			ui.nt3TypeSelect,
+		),
+		widget.NewSeparator(),
+		widget.NewLabel("测速配置:"),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("节点数/运营商:"),
+			ui.spNumEntry,
+		),
 	)
 
-	rightColumn := container.NewVBox(
-		diskCard,
-		nt3Card,
-		speedCard,
-	)
-
-	leftScroll := container.NewScroll(leftColumn)
-	leftScroll.SetMinSize(fyne.NewSize(400, 0))
-
-	rightScroll := container.NewScroll(rightColumn)
-	rightScroll.SetMinSize(fyne.NewSize(400, 0))
-
-	return container.NewHSplit(leftScroll, rightScroll)
-}
-
-// createResultTab 创建测试结果显示选项卡
-func (ui *TestUI) createResultTab() fyne.CanvasObject {
-	// 状态标签
-	ui.statusLabel = widget.NewLabel("就绪")
-
-	// 进度条
-	ui.progressBar = widget.NewProgressBar()
-	ui.progressBar.Hide()
-
-	// 结果文本 - 使用 RichText 支持富文本和颜色
-	ui.resultText = widget.NewRichText()
-	ui.resultText.Wrapping = fyne.TextWrapOff
-
-	// 导出按钮
-	exportButton := widget.NewButton("导出结果", ui.exportResults)
-
-	topBar := container.NewBorder(
-		nil, nil,
-		ui.statusLabel,
-		exportButton,
-		ui.progressBar,
-	)
-
-	return container.NewBorder(
-		topBar,
-		nil, nil, nil,
-		container.NewScroll(ui.resultText),
-	)
+	return widget.NewCard("详细配置", "调整测试参数", configForm)
 }

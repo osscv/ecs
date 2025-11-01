@@ -28,7 +28,7 @@ jobs:
             IS_RELEASE="true"
           else
             APP_VERSION="$BASE_VERSION"
-            VERSION=v${BASE_VERSION}-$(date +%Y%m%d)-$(git rev-parse --short HEAD)
+            VERSION=v${BASE_VERSION}
             IS_RELEASE="false"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
@@ -90,6 +90,45 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
       
+      - name: Download ECS binaries for embed
+        run: |
+          REPO="oneclickvirt/ecs"
+          BINARIES_DIR="binaries"
+          
+          mkdir -p "$BINARIES_DIR"
+          
+          # 获取最新版本
+          echo "获取最新版本信息..."
+          ECS_VERSION=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          
+          if [ -z "$ECS_VERSION" ]; then
+            echo "错误: 无法获取最新版本"
+            exit 1
+          fi
+          
+          echo "ECS 版本: $ECS_VERSION"
+          
+          # 下载 Linux ARM64（用于 Android ARM64）
+          echo "下载 Linux ARM64..."
+          curl -L -f -o "/tmp/goecs_linux_arm64.zip" \
+            "https://github.com/${REPO}/releases/download/${ECS_VERSION}/goecs_linux_arm64.zip"
+          unzip -q -o "/tmp/goecs_linux_arm64.zip" -d /tmp/
+          mv /tmp/goecs "${BINARIES_DIR}/goecs-linux-arm64"
+          chmod +x "${BINARIES_DIR}/goecs-linux-arm64"
+          
+          # 下载 Linux AMD64（用于 Android x86_64）
+          echo "下载 Linux AMD64..."
+          curl -L -f -o "/tmp/goecs_linux_amd64.zip" \
+            "https://github.com/${REPO}/releases/download/${ECS_VERSION}/goecs_linux_amd64.zip"
+          unzip -q -o "/tmp/goecs_linux_amd64.zip" -d /tmp/
+          mv /tmp/goecs "${BINARIES_DIR}/goecs-linux-amd64"
+          chmod +x "${BINARIES_DIR}/goecs-linux-amd64"
+          
+          echo ""
+          echo "二进制文件列表:"
+          ls -lh "${BINARIES_DIR}/"
+          echo ""
+      
       - name: Update FyneApp.toml version
         run: |
           sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
@@ -103,7 +142,7 @@ jobs:
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}"
           if [ -f *.apk ]; then
             mkdir -p .build
-            mv *.apk .build/goecs-android-arm64-${{ needs.prepare.outputs.version }}.apk
+            mv *.apk .build/goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
             echo "ARM64 APK 构建成功"
           else
             echo "ARM64 APK 构建失败"
@@ -117,7 +156,7 @@ jobs:
         run: |
           fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}"
           if [ -f *.apk ]; then
-            mv *.apk .build/goecs-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+            mv *.apk .build/goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
             echo "x86_64 APK 构建成功"
           else
             echo "x86_64 APK 构建失败"
@@ -129,18 +168,46 @@ jobs:
           ls -lh .build/
           du -sh .build/*.apk
       
+      - name: Get release
+        id: get_release
+        shell: bash
+        run: |
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" == "null" ]; then
+            exit 1
+          else
+            RELEASE_TAG="$LATEST_RELEASE"
+            echo "Found existing release: $RELEASE_TAG"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload to release
+        shell: bash
+        run: |
+          cd .build
+          for file in *; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file to release ${{ steps.get_release.outputs.RELEASE_TAG }}"
+              gh release upload "${{ steps.get_release.outputs.RELEASE_TAG }}" "$file" --clobber
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: goecs-android-arm64-${{ needs.prepare.outputs.version }}
-          path: .build/goecs-android-arm64-${{ needs.prepare.outputs.version }}.apk
+          name: goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}
+          path: .build/goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
           retention-days: 90
       
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: goecs-android-x86_64-${{ needs.prepare.outputs.version }}
-          path: .build/goecs-android-x86_64-${{ needs.prepare.outputs.version }}.apk
+          name: goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}
+          path: .build/goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
           retention-days: 90
 
   build-desktop:
@@ -194,6 +261,51 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
       
+      - name: Download ECS binaries for embed
+        shell: bash
+        run: |
+          REPO="oneclickvirt/ecs"
+          BINARIES_DIR="binaries"
+          TARGET_OS="${{ matrix.platform }}"
+          TARGET_ARCH="${{ matrix.arch }}"
+          
+          mkdir -p "$BINARIES_DIR"
+          
+          echo "获取最新版本信息..."
+          ECS_VERSION=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          
+          if [ -z "$ECS_VERSION" ]; then
+            echo "错误: 无法获取最新版本"
+            exit 1
+          fi
+          
+          echo "ECS 版本: $ECS_VERSION"
+          echo "目标平台: $TARGET_OS/$TARGET_ARCH"
+          
+          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${ECS_VERSION}/goecs_${TARGET_OS}_${TARGET_ARCH}.zip"
+          OUTPUT_FILE="${BINARIES_DIR}/goecs-${TARGET_OS}-${TARGET_ARCH}"
+          
+          echo "下载 ${TARGET_OS}/${TARGET_ARCH}..."
+          echo "URL: $DOWNLOAD_URL"
+          
+          curl -L -f -o "/tmp/goecs.zip" "$DOWNLOAD_URL"
+          unzip -q -o "/tmp/goecs.zip" -d /tmp/
+          
+          if [ -f "/tmp/goecs.exe" ]; then
+            mv /tmp/goecs.exe "$OUTPUT_FILE"
+          elif [ -f "/tmp/goecs" ]; then
+            mv /tmp/goecs "$OUTPUT_FILE"
+            chmod +x "$OUTPUT_FILE"
+          else
+            echo "错误: 找不到解压后的二进制文件"
+            exit 1
+          fi
+          
+          echo ""
+          echo "二进制文件列表:"
+          ls -lh "${BINARIES_DIR}/"
+          echo ""
+      
       - name: Update FyneApp.toml version
         shell: bash
         run: |
@@ -219,7 +331,7 @@ jobs:
             
             if [ -d goecs.app ]; then
               mkdir -p .build
-              TARFILE="goecs-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
+              TARFILE="goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.tar.gz"
               echo "Creating tar file: $TARFILE"
               tar -czf "$TARFILE" goecs.app
               mv "$TARFILE" .build/
@@ -236,7 +348,7 @@ jobs:
             if [ "${{ matrix.platform }}" == "windows" ]; then
               if [ -f goecs.exe ]; then
                 mkdir -p .build
-                mv goecs.exe .build/goecs-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
+                mv goecs.exe .build/goecs-gui-${{ matrix.name }}-${{ needs.prepare.outputs.version }}.exe
                 echo "✓ Windows exe 构建成功"
               else
                 echo "✗ Windows exe 构建失败"
