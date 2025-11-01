@@ -1,4 +1,4 @@
-//go:build android && amd64
+//go:build !windows && !darwin && !linux && amd64
 
 package embedding
 
