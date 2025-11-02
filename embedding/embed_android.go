@@ -172,8 +172,12 @@ func ExtractECSBinary() (string, error) {
 		}
 	}
 
-	// 库名称固定为 libgoecs.so
-	libraryName := "libgoecs.so"
+	// 可能的库名称（考虑不同的命名约定）
+	libraryNames := []string{
+		"libgoecs.so", // 标准小写
+		"libGoECS.so", // Fyne 可能使用的驼峰命名
+		"libGOECS.so", // 全大写变体
+	}
 
 	// 尝试的子目录（Android ABI 名称）
 	abiDirs := []string{
@@ -192,7 +196,7 @@ func ExtractECSBinary() (string, error) {
 		abiDirs = append(abiDirs, "x86")
 	}
 
-	// 尝试所有可能的路径组合
+	// 尝试所有可能的路径和名称组合
 	var checkedPaths []string
 
 	if err == nil {
@@ -202,20 +206,24 @@ func ExtractECSBinary() (string, error) {
 				baseDir = filepath.Join(libDir, abiDir)
 			}
 
-			ecsPath := filepath.Join(baseDir, libraryName)
-			checkedPaths = append(checkedPaths, ecsPath)
+			// 尝试所有可能的文件名
+			for _, libraryName := range libraryNames {
+				ecsPath := filepath.Join(baseDir, libraryName)
+				checkedPaths = append(checkedPaths, ecsPath)
 
-			// 添加详细的调试信息
-			if info, err := os.Stat(ecsPath); err == nil && !info.IsDir() {
-				// 找到文件，确保有执行权限
-				if err := os.Chmod(ecsPath, 0755); err != nil {
-					// 在某些 Android 版本上可能无法修改权限，但这通常不是问题
+				// 添加详细的调试信息
+				if info, err := os.Stat(ecsPath); err == nil && !info.IsDir() {
+					// 找到文件，确保有执行权限
+					if err := os.Chmod(ecsPath, 0755); err != nil {
+						// 在某些 Android 版本上可能无法修改权限，但这通常不是问题
+					}
+					debugInfo += fmt.Sprintf("✓ 找到文件: %s\n", ecsPath)
+					return ecsPath, nil
+				} else if err == nil && info.IsDir() {
+					debugInfo += fmt.Sprintf("  警告: %s 是目录而不是文件\n", ecsPath)
+				} else {
+					debugInfo += fmt.Sprintf("  未找到: %s (错误: %v)\n", ecsPath, err)
 				}
-				return ecsPath, nil
-			} else if err == nil && info.IsDir() {
-				debugInfo += fmt.Sprintf("  警告: %s 是目录而不是文件\n", ecsPath)
-			} else {
-				debugInfo += fmt.Sprintf("  未找到: %s (错误: %v)\n", ecsPath, err)
 			}
 
 			// 如果这是一个目录，列出其内容
