@@ -10,62 +10,133 @@ import (
 	"strings"
 )
 
-// findNativeLibraryDir 查找应用的 native library 目录
-// 这个目录是系统自动管理的，包含从 APK 中提取的 .so 文件
-func findNativeLibraryDir() (string, error) {
-	// 方法 1: 通过环境变量获取（Fyne 可能会设置）
-	if libDir := os.Getenv("ANDROID_LIB_DIR"); libDir != "" {
-		if info, err := os.Stat(libDir); err == nil && info.IsDir() {
-			return libDir, nil
+// isValidAppLibDir 检查是否是有效的应用 lib 目录（排除系统目录）
+func isValidAppLibDir(path string) bool {
+	// 排除系统目录
+	systemPaths := []string{
+		"/system/",
+		"/vendor/",
+		"/apex/",
+	}
+
+	for _, sysPath := range systemPaths {
+		if strings.HasPrefix(path, sysPath) {
+			return false
 		}
 	}
 
-	// 方法 2: 通过可执行文件路径推断
-	execPath, err := os.Executable()
-	if err == nil {
-		// 可执行文件通常在 /data/app/<package>-<hash>/base.apk 或 /data/app/<package>-<hash>/oat/arm64/base.odex
-		// native library 通常在 /data/app/<package>-<hash>/lib/arm64/
+	// 必须在 /data/ 下
+	if !strings.HasPrefix(path, "/data/") {
+		return false
+	}
 
-		// 尝试找到应用根目录
+	return true
+}
+
+// findNativeLibraryDir 查找应用的 native library 目录
+// 这个目录是系统自动管理的，包含从 APK 中提取的 .so 文件
+func findNativeLibraryDir() (string, error) {
+	var allAttempts []string
+
+	// 方法 1: 通过 /proc/self/maps 查找已加载的应用共享库路径（最可靠）
+	if mapsData, err := os.ReadFile("/proc/self/maps"); err == nil {
+		lines := strings.Split(string(mapsData), "\n")
+		for _, line := range lines {
+			// 查找包含 .so 且在 /data/ 下的行
+			if strings.Contains(line, ".so") && strings.Contains(line, "/data/app/") {
+				parts := strings.Fields(line)
+				if len(parts) >= 6 {
+					soPath := parts[5]
+					allAttempts = append(allAttempts, fmt.Sprintf("从 maps 找到 .so: %s", soPath))
+
+					// 获取库目录
+					libDir := filepath.Dir(soPath)
+					// 向上查找到 lib 目录
+					for i := 0; i < 5; i++ {
+						if filepath.Base(libDir) == "lib" && isValidAppLibDir(libDir) {
+							allAttempts = append(allAttempts, fmt.Sprintf("✓ 从 maps 确定 lib 目录: %s", libDir))
+							return libDir, nil
+						}
+						parent := filepath.Dir(libDir)
+						if parent == libDir || parent == "/" {
+							break
+						}
+						libDir = parent
+					}
+				}
+			}
+		}
+	}
+
+	// 方法 2: 通过可执行文件路径推断（仅限 /data/ 路径）
+	execPath, err := os.Executable()
+	if err == nil && strings.HasPrefix(execPath, "/data/") {
+		allAttempts = append(allAttempts, fmt.Sprintf("可执行文件路径: %s", execPath))
+
+		// 向上查找到包含 lib 目录的层级
 		dir := execPath
-		for i := 0; i < 10; i++ { // 最多向上查找10层
+		for i := 0; i < 10; i++ {
 			dir = filepath.Dir(dir)
 			if dir == "/" || dir == "." {
 				break
 			}
 
 			libDir := filepath.Join(dir, "lib")
+			allAttempts = append(allAttempts, fmt.Sprintf("检查: %s", libDir))
 
-			// 检查 lib 目录
-			if info, err := os.Stat(libDir); err == nil && info.IsDir() {
-				// 检查是否包含架构子目录或 .so 文件
+			if info, err := os.Stat(libDir); err == nil && info.IsDir() && isValidAppLibDir(libDir) {
+				// 确保这是应用的 lib 目录（包含架构子目录）
 				entries, err := os.ReadDir(libDir)
 				if err == nil && len(entries) > 0 {
+					allAttempts = append(allAttempts, fmt.Sprintf("✓ 从可执行路径找到 lib 目录: %s", libDir))
 					return libDir, nil
 				}
 			}
 		}
+	} else {
+		allAttempts = append(allAttempts, fmt.Sprintf("获取可执行路径失败或不在 /data/: %v", err))
 	}
 
-	// 方法 3: 尝试标准的 Android native library 路径
+	// 方法 3: 搜索 /data/app 目录（直接扫描）
+	dataAppDir := "/data/app"
+	if entries, err := os.ReadDir(dataAppDir); err == nil {
+		allAttempts = append(allAttempts, fmt.Sprintf("扫描 %s 目录...", dataAppDir))
+		for _, entry := range entries {
+			if entry.IsDir() && strings.Contains(entry.Name(), "com.oneclickvirt.goecs") {
+				libDir := filepath.Join(dataAppDir, entry.Name(), "lib")
+				allAttempts = append(allAttempts, fmt.Sprintf("检查: %s", libDir))
+				if info, err := os.Stat(libDir); err == nil && info.IsDir() {
+					allAttempts = append(allAttempts, fmt.Sprintf("✓ 从 /data/app 扫描找到 lib 目录: %s", libDir))
+					return libDir, nil
+				}
+			}
+		}
+	} else {
+		allAttempts = append(allAttempts, fmt.Sprintf("无法读取 %s: %v", dataAppDir, err))
+	}
+
+	// 方法 4: 尝试标准路径
 	possibleBasePaths := []string{
 		"/data/data/com.oneclickvirt.goecs/lib",
 		"/data/app/com.oneclickvirt.goecs/lib",
 	}
 
 	for _, basePath := range possibleBasePaths {
+		allAttempts = append(allAttempts, fmt.Sprintf("检查标准路径: %s", basePath))
 		if info, err := os.Stat(basePath); err == nil && info.IsDir() {
+			allAttempts = append(allAttempts, fmt.Sprintf("✓ 找到标准路径: %s", basePath))
 			return basePath, nil
 		}
 
-		// 尝试带哈希的路径（Android 5.0+）
+		// 尝试带哈希的路径
 		parent := filepath.Dir(basePath)
-		parentEntries, err := os.ReadDir(parent)
-		if err == nil {
+		if parentEntries, err := os.ReadDir(parent); err == nil {
 			for _, entry := range parentEntries {
 				if entry.IsDir() && strings.HasPrefix(entry.Name(), "com.oneclickvirt.goecs") {
 					libDir := filepath.Join(parent, entry.Name(), "lib")
+					allAttempts = append(allAttempts, fmt.Sprintf("检查带哈希的路径: %s", libDir))
 					if info, err := os.Stat(libDir); err == nil && info.IsDir() {
+						allAttempts = append(allAttempts, fmt.Sprintf("✓ 找到带哈希的路径: %s", libDir))
 						return libDir, nil
 					}
 				}
@@ -73,44 +144,7 @@ func findNativeLibraryDir() (string, error) {
 		}
 	}
 
-	// 方法 4: 搜索 /data/app 目录
-	dataAppDir := "/data/app"
-	if entries, err := os.ReadDir(dataAppDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() && strings.Contains(entry.Name(), "com.oneclickvirt.goecs") {
-				libDir := filepath.Join(dataAppDir, entry.Name(), "lib")
-				if info, err := os.Stat(libDir); err == nil && info.IsDir() {
-					return libDir, nil
-				}
-			}
-		}
-	}
-
-	// 方法 5: 尝试通过 /proc/self/maps 查找已加载的共享库路径
-	if mapsData, err := os.ReadFile("/proc/self/maps"); err == nil {
-		lines := strings.Split(string(mapsData), "\n")
-		for _, line := range lines {
-			// 查找包含 .so 的行
-			if strings.Contains(line, ".so") && strings.Contains(line, "/data/") {
-				// 提取路径部分
-				parts := strings.Fields(line)
-				if len(parts) >= 6 {
-					soPath := parts[5]
-					// 获取库目录
-					libDir := filepath.Dir(soPath)
-					// 向上查找到 lib 目录
-					for i := 0; i < 3; i++ {
-						if filepath.Base(libDir) == "lib" {
-							return libDir, nil
-						}
-						libDir = filepath.Dir(libDir)
-					}
-				}
-			}
-		}
-	}
-
-	return "", fmt.Errorf("无法找到 native library 目录")
+	return "", fmt.Errorf("无法找到 native library 目录\n查找过程:\n  %s", strings.Join(allAttempts, "\n  "))
 }
 
 // ExtractECSBinary 获取 ECS 二进制文件路径
