@@ -205,12 +205,31 @@ func ExtractECSBinary() (string, error) {
 			ecsPath := filepath.Join(baseDir, libraryName)
 			checkedPaths = append(checkedPaths, ecsPath)
 
+			// 添加详细的调试信息
 			if info, err := os.Stat(ecsPath); err == nil && !info.IsDir() {
 				// 找到文件，确保有执行权限
 				if err := os.Chmod(ecsPath, 0755); err != nil {
 					// 在某些 Android 版本上可能无法修改权限，但这通常不是问题
 				}
 				return ecsPath, nil
+			} else if err == nil && info.IsDir() {
+				debugInfo += fmt.Sprintf("  警告: %s 是目录而不是文件\n", ecsPath)
+			} else {
+				debugInfo += fmt.Sprintf("  未找到: %s (错误: %v)\n", ecsPath, err)
+			}
+
+			// 如果这是一个目录，列出其内容
+			if abiDir != "" {
+				if entries, err := os.ReadDir(baseDir); err == nil && len(entries) > 0 {
+					debugInfo += fmt.Sprintf("  %s 目录内容:\n", baseDir)
+					for _, entry := range entries {
+						entryType := "文件"
+						if entry.IsDir() {
+							entryType = "目录"
+						}
+						debugInfo += fmt.Sprintf("    - %s (%s)\n", entry.Name(), entryType)
+					}
+				}
 			}
 		}
 	}
