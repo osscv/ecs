@@ -217,7 +217,8 @@ func (ui *TestUI) addLogTab() {
 	ui.LogViewer = widget.NewMultiLineEntry()
 	ui.LogViewer.SetPlaceHolder("日志内容将在测试运行时显示...")
 	ui.LogViewer.Wrapping = fyne.TextWrapWord
-	ui.LogViewer.Disable() // 只读
+	// 不使用 Disable()，让文字颜色保持正常
+	// ui.LogViewer.Disable() // 只读
 
 	// 刷新日志按钮
 	refreshButton := widget.NewButton("刷新日志", func() {

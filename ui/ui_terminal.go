@@ -26,7 +26,8 @@ func NewTerminalOutput() *TerminalOutput {
 	terminal.ExtendBaseWidget(terminal)
 	terminal.MultiLine = true
 	terminal.Wrapping = fyne.TextWrapWord
-	terminal.Disable() // 禁用编辑
+	// 使用 ReadOnly 而不是 Disable，这样文字颜色正常
+	// terminal.Disable() // 禁用编辑
 	return terminal
 }
 
