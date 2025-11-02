@@ -45,6 +45,19 @@ go install fyne.io/fyne/v2/cmd/fyne@latest
 ### 构建命令
 
 ```bash
+# Android 构建前准备：需要先准备 ECS 二进制文件
+# 从 ECS 项目编译 Linux 二进制并放入 jniLibs 目录
+# 详见 jniLibs/README.md
+
+# 快速准备命令（假设 ecs 项目在 ../ecs）
+cd ../ecs && \
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -checklinkname=0" -o goecs-linux-arm64 ./ && \
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -checklinkname=0" -o goecs-linux-amd64 ./ && \
+cd ../goecs && \
+cp ../ecs/goecs-linux-arm64 jniLibs/arm64-v8a/libgoecs.so && \
+cp ../ecs/goecs-linux-amd64 jniLibs/x86_64/libgoecs.so && \
+chmod 755 jniLibs/*/libgoecs.so
+
 # 构建桌面端（用于快速测试）
 ./build.sh desktop
 
