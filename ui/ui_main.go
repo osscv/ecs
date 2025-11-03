@@ -73,13 +73,14 @@ func (ui *TestUI) createResultTab() fyne.CanvasObject {
 	)
 
 	// 导出按钮
+	copyButton := widget.NewButton("复制结果", ui.copyResults)
 	exportButton := widget.NewButton("导出结果", ui.exportResults)
 	clearButton := widget.NewButton("清空输出", ui.clearResults)
 
 	topBar := container.NewBorder(
 		nil, nil,
 		statusBar,
-		container.NewHBox(clearButton, exportButton),
+		container.NewHBox(clearButton, copyButton, exportButton),
 	)
 
 	// 终端输出占据主要空间

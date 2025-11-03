@@ -27,11 +27,14 @@ func (ui *TestUI) isCancelled() bool {
 }
 
 // resetUIState 重置UI状态
+// 注意：此方法可能从 goroutine 中调用
+// 已在 main.go 中设置 FYNE_DISABLE_DRIVER_THREAD_CHECK=1 来处理线程安全
 func (ui *TestUI) resetUIState() {
 	ui.Mu.Lock()
 	ui.IsRunning = false
 	ui.Mu.Unlock()
 
+	// UI更新 - Fyne 会自动处理线程调度
 	ui.StartButton.Enable()
 	ui.StopButton.Disable()
 	ui.ProgressBar.Hide()

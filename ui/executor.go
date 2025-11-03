@@ -186,52 +186,6 @@ func (e *CommandExecutor) Execute(selectedOptions map[string]bool, language stri
 			defer wg1.Done()
 			mediaInfo = tests.MediaTest(language)
 		}()
-	} // 2. CPU测试
-	if cpuTestStatus {
-		outputMutex.Lock()
-		realTestMethod, res := tests.CpuTest(language, cpuMethod, threadMode)
-		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("CPU测试-通过%s测试", realTestMethod), 82)
-		} else {
-			PrintCenteredTitle(fmt.Sprintf("CPU-Test--%s-Method", realTestMethod), 82)
-		}
-		fmt.Print(res)
-		outputMutex.Unlock()
-	}
-
-	// 3. 内存测试
-	if memoryTestStatus {
-		outputMutex.Lock()
-		realTestMethod, res := tests.MemoryTest(language, memoryMethod)
-		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("内存测试-通过%s测试", realTestMethod), 82)
-		} else {
-			PrintCenteredTitle(fmt.Sprintf("Memory-Test--%s-Method", realTestMethod), 82)
-		}
-		fmt.Print(res)
-		outputMutex.Unlock()
-	}
-
-	// 4. 磁盘测试
-	if diskTestStatus {
-		outputMutex.Lock()
-		realTestMethod, res := tests.DiskTest(language, diskMethod, diskPath, diskMulti, true)
-		if language == "zh" {
-			PrintCenteredTitle(fmt.Sprintf("硬盘测试-通过%s测试", realTestMethod), 82)
-		} else {
-			PrintCenteredTitle(fmt.Sprintf("Disk-Test--%s-Method", realTestMethod), 82)
-		}
-		fmt.Print(res)
-		outputMutex.Unlock()
-	}
-
-	// 5. 启动异步测试（流媒体解锁和邮件端口）
-	if utTestStatus && preCheck.Connected {
-		wg1.Add(1)
-		go func() {
-			defer wg1.Done()
-			mediaInfo = tests.MediaTest(language)
-		}()
 	}
 
 	if emailTestStatus && preCheck.Connected {

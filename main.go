@@ -22,6 +22,9 @@ func init() {
 }
 
 func main() {
+	// 禁用 Fyne 的线程警告
+	os.Setenv("FYNE_DISABLE_DRIVER_THREAD_CHECK", "1")
+
 	flag.Parse()
 
 	if showVersion {

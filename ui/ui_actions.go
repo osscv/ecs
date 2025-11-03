@@ -15,20 +15,32 @@ import (
 func (ui *TestUI) onPresetChanged(preset string) {
 	switch preset {
 	case "1. 融合怪完全体(能测全测)":
+		// 对应原goecs.go的选项1: SetFullTestStatus
 		ui.setAllChecks(true)
-		// 注意：原goecs.go的完全体不包括三网ping测试，但包括TGDC和Web测试
+		// 注意：原goecs.go的完全体包括TGDC和Web测试，不包括三网ping测试
 		ui.PingCheck.Checked = false
-		// 启用TGDC和主流网站PING测试（非中国模式下的默认行为）
 		ui.PingTgdcCheck.Checked = true
 		ui.PingWebCheck.Checked = true
-	case "2. 极简版(系统+CPU+内存+磁盘+5测速节点)":
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "2. 极简版(系统信息+CPU+内存+磁盘+测速节点5个)":
+		// 对应原goecs.go的选项2: SetMinimalTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
 		ui.MemoryCheck.Checked = true
 		ui.DiskCheck.Checked = true
 		ui.SpeedCheck.Checked = true
-	case "3. 精简版(系统+CPU+内存+磁盘+基础解锁+5测速节点)":
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "3. 精简版(系统信息+CPU+内存+磁盘+常用流媒体+路由+测速节点5个)":
+		// 对应原goecs.go的选项3: SetStandardTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -37,7 +49,14 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.UnlockCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.SpeedCheck.Checked = true
-	case "4. 精简网络版(系统+CPU+内存+磁盘+回程+路由+5测速节点)":
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "4. 精简网络版(系统信息+CPU+内存+磁盘+回程+路由+测速节点5个)":
+		// 对应原goecs.go的选项4: SetNetworkFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -46,7 +65,14 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
 		ui.SpeedCheck.Checked = true
-	case "5. 精简解锁版(系统+CPU+内存+磁盘IO+御三家+常用流媒体+5测速节点)":
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "5. 精简解锁版(系统信息+CPU+内存+磁盘IO+御三家+常用流媒体+测速节点5个)":
+		// 对应原goecs.go的选项5: SetUnlockFocusedTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
@@ -55,43 +81,83 @@ func (ui *TestUI) onPresetChanged(preset string) {
 		ui.CommCheck.Checked = true
 		ui.UnlockCheck.Checked = true
 		ui.SpeedCheck.Checked = true
-	case "6. 仅网络测试(IP质量+5测速节点)":
-		// 对应原goecs.go的选项6: setNetworkOnlyTestStatus
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "6. 网络单项(IP质量检测+上游及三网回程+广州三网回程详细路由+全国延迟+TGDC+网站延迟+测速节点11个)":
+		// 对应原goecs.go的选项6: SetNetworkOnlyTestStatus
 		ui.setAllChecks(false)
+		ui.BasicCheck.Checked = false // 6号选项不包括基础信息
 		ui.SecurityCheck.Checked = true
 		ui.SpeedCheck.Checked = true
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
-		ui.PingCheck.Checked = true // 原代码在此选项启用ping
-	case "7. 仅解锁测试(基础解锁+常用流媒体解锁)":
-		// 对应原goecs.go的选项7: setUnlockOnlyTestStatus
+		ui.PingCheck.Checked = true
+		ui.PingTgdcCheck.Checked = true
+		ui.PingWebCheck.Checked = true
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：全部启用
+		ui.SpTestUploadCheck.Checked = true
+		ui.SpTestDownloadCheck.Checked = true
+	case "7. 解锁单项(御三家解锁+常用流媒体解锁)":
+		// 对应原goecs.go的选项7: SetUnlockOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.CommCheck.Checked = true
 		ui.UnlockCheck.Checked = true
-	case "8. 仅硬件测试(系统+CPU+内存+dd磁盘+fio磁盘)":
-		// 对应原goecs.go的选项8: setHardwareOnlyTestStatus
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：禁用
+		ui.SpTestUploadCheck.Checked = false
+		ui.SpTestDownloadCheck.Checked = false
+	case "8. 硬件单项(系统信息+CPU+dd磁盘测试+fio磁盘测试)":
+		// 对应原goecs.go的选项8: SetHardwareOnlyTestStatus
 		ui.setAllChecks(false)
 		ui.BasicCheck.Checked = true
 		ui.CpuCheck.Checked = true
 		ui.MemoryCheck.Checked = true
 		ui.DiskCheck.Checked = true
-		ui.DiskMethodSelect.Selected = "fio"
-	case "9. IP质量测试(IP测试+15数据库+邮件端口)":
-		// 对应原goecs.go的选项9: setIPQualityTestStatus
+		ui.DiskMethodSelect.Selected = "auto" // 使用auto让系统自动选择dd和fio
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：禁用
+		ui.SpTestUploadCheck.Checked = false
+		ui.SpTestDownloadCheck.Checked = false
+	case "9. IP质量检测(15个数据库的IP质量检测+邮件端口检测)":
+		// 对应原goecs.go的选项9: SetIPQualityTestStatus
 		ui.setAllChecks(false)
+		ui.BasicCheck.Checked = false // 9号选项不包括基础信息
 		ui.SecurityCheck.Checked = true
 		ui.EmailCheck.Checked = true
-	case "10. 三网回程路由检测(回程路由+详细路由+三网延迟)":
-		// 对应原goecs.go的选项10: setRouteTestStatus + nt3Location = "ALL"
+		ui.PingTgdcCheck.Checked = false
+		ui.PingWebCheck.Checked = false
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：禁用
+		ui.SpTestUploadCheck.Checked = false
+		ui.SpTestDownloadCheck.Checked = false
+	case "10. 三网回程线路检测+三网回程详细路由(北京上海广州成都)+全国延迟+TGDC+网站延迟":
+		// 对应原goecs.go的选项10: SetRouteTestStatus + nt3Location = "ALL"
 		ui.setAllChecks(false)
+		ui.BasicCheck.Checked = false // 10号选项不包括基础信息
 		ui.BacktraceCheck.Checked = true
 		ui.Nt3Check.Checked = true
-		ui.PingCheck.Checked = true           // 原代码在此选项启用ping
+		ui.PingCheck.Checked = true
+		ui.PingTgdcCheck.Checked = true
+		ui.PingWebCheck.Checked = true
 		ui.Nt3LocationSelect.Selected = "ALL" // 设置为全部地点
+		ui.ChinaModeCheck.Checked = false
+		// 测速配置：禁用
+		ui.SpTestUploadCheck.Checked = false
+		ui.SpTestDownloadCheck.Checked = false
 	default: // 自定义
 		return
 	}
 	ui.refreshAllChecks()
+	ui.refreshSpeedTestChecks()
 }
 
 // setAllChecks 设置所有测试项的选中状态
@@ -125,6 +191,25 @@ func (ui *TestUI) refreshAllChecks() {
 	ui.Nt3Check.Refresh()
 	ui.SpeedCheck.Refresh()
 	ui.PingCheck.Refresh()
+}
+
+// refreshSpeedTestChecks 刷新测速配置的显示
+func (ui *TestUI) refreshSpeedTestChecks() {
+	if ui.SpTestUploadCheck != nil {
+		ui.SpTestUploadCheck.Refresh()
+	}
+	if ui.SpTestDownloadCheck != nil {
+		ui.SpTestDownloadCheck.Refresh()
+	}
+	if ui.PingTgdcCheck != nil {
+		ui.PingTgdcCheck.Refresh()
+	}
+	if ui.PingWebCheck != nil {
+		ui.PingWebCheck.Refresh()
+	}
+	if ui.ChinaModeCheck != nil {
+		ui.ChinaModeCheck.Refresh()
+	}
 }
 
 // startTests 开始执行测试
@@ -177,6 +262,23 @@ func (ui *TestUI) clearResults() {
 	}
 	ui.StatusLabel.SetText("就绪")
 	ui.ProgressBar.SetValue(0)
+}
+
+// copyResults 复制测试结果到剪贴板
+func (ui *TestUI) copyResults() {
+	var content string
+	if ui.Terminal != nil {
+		content = ui.Terminal.GetText()
+	}
+
+	if content == "" {
+		dialog.ShowInformation("提示", "没有可复制的内容", ui.Window)
+		return
+	}
+
+	// 复制到剪贴板
+	ui.App.Clipboard().SetContent(content)
+	dialog.ShowInformation("成功", "测试结果已复制到剪贴板", ui.Window)
 }
 
 // exportResults 导出测试结果

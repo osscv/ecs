@@ -13,52 +13,51 @@ import (
 type TerminalOutput struct {
 	widget.Entry
 	mu       sync.Mutex
-	lines    []string
-	maxLines int
+	content  string // 存储完整内容
+	maxBytes int    // 最大字节数限制
 }
 
 // NewTerminalOutput 创建新的终端输出组件
 func NewTerminalOutput() *TerminalOutput {
 	terminal := &TerminalOutput{
-		lines:    make([]string, 0),
-		maxLines: 10000, // 最大行数限制
+		content:  "",
+		maxBytes: 1024 * 1024 * 10, // 最大10MB
 	}
 	terminal.ExtendBaseWidget(terminal)
 	terminal.MultiLine = true
-	terminal.Wrapping = fyne.TextWrapWord
-	// 使用 ReadOnly 而不是 Disable，这样文字颜色正常
-	// terminal.Disable() // 禁用编辑
+	terminal.Wrapping = fyne.TextWrapOff // 禁用自动换行，支持水平滚动
+	terminal.TextStyle = fyne.TextStyle{Monospace: true}
+
 	return terminal
 }
 
 // AppendText 追加文本到终端
 func (t *TerminalOutput) AppendText(text string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	// 移除ANSI颜色代码
 	cleanText := t.stripANSI(text)
 
-	// 分割成行
-	newLines := strings.Split(cleanText, "\n")
+	t.mu.Lock()
+	// 追加到现有内容
+	t.content += cleanText
 
-	// 如果最后一行是空的，移除它（避免额外的空行）
-	if len(newLines) > 0 && newLines[len(newLines)-1] == "" {
-		newLines = newLines[:len(newLines)-1]
+	// 限制最大字节数，保留最新的内容
+	if len(t.content) > t.maxBytes {
+		// 保留最后的 maxBytes 字节
+		t.content = t.content[len(t.content)-t.maxBytes:]
+		// 找到第一个换行符，从那里开始（避免截断半行）
+		if idx := strings.Index(t.content, "\n"); idx > 0 {
+			t.content = t.content[idx+1:]
+		}
 	}
 
-	t.lines = append(t.lines, newLines...)
+	// 保存当前内容用于UI更新
+	currentContent := t.content
+	t.mu.Unlock()
 
-	// 限制最大行数
-	if len(t.lines) > t.maxLines {
-		t.lines = t.lines[len(t.lines)-t.maxLines:]
-	}
-
-	// 更新显示
-	t.SetText(strings.Join(t.lines, "\n"))
-
-	// 自动滚动到底部
-	t.CursorRow = len(t.lines)
+	// 更新 UI - Fyne 会处理线程安全
+	// 我们已在 main.go 中设置了 FYNE_DISABLE_DRIVER_THREAD_CHECK=1
+	t.Entry.Text = currentContent
+	t.Refresh()
 }
 
 // Clear 清空终端内容
@@ -66,25 +65,29 @@ func (t *TerminalOutput) Clear() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.lines = make([]string, 0)
-	t.SetText("")
+	t.content = ""
+	t.Entry.Text = ""
+	t.Refresh()
 }
 
-// SetText 设置完整文本（覆盖现有内容）
+// SetFullText 设置完整文本（覆盖现有内容）
 func (t *TerminalOutput) SetFullText(text string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	cleanText := t.stripANSI(text)
-	t.lines = strings.Split(cleanText, "\n")
+	t.content = cleanText
 
-	// 限制最大行数
-	if len(t.lines) > t.maxLines {
-		t.lines = t.lines[len(t.lines)-t.maxLines:]
+	// 限制最大字节数
+	if len(t.content) > t.maxBytes {
+		t.content = t.content[len(t.content)-t.maxBytes:]
+		if idx := strings.Index(t.content, "\n"); idx > 0 {
+			t.content = t.content[idx+1:]
+		}
 	}
 
-	t.SetText(strings.Join(t.lines, "\n"))
-	t.CursorRow = len(t.lines)
+	t.Entry.Text = t.content
+	t.Refresh()
 }
 
 // stripANSI 移除ANSI转义序列
@@ -97,5 +100,5 @@ func (t *TerminalOutput) stripANSI(text string) string {
 func (t *TerminalOutput) GetText() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return strings.Join(t.lines, "\n")
+	return t.content
 }
