@@ -101,6 +101,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
         run: |
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
@@ -117,6 +118,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w'"
         run: |
           fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
@@ -239,15 +241,16 @@ jobs:
       - name: Build for ${{ matrix.name }}
         env:
           GOPRIVATE: github.com/oneclickvirt/security
+          FYNE_BUILD_FLAGS: "-trimpath -ldflags '-s -w -checklinkname=0'"
         shell: bash
         run: |
           # macOS 需要特殊处理：先编译再打包
           if [ "${{ matrix.platform }}" == "darwin" ]; then
             echo "Building macOS binary with ldflags..."
-            go build -ldflags "-checklinkname=0 -s -w" -o goecs-bin .
+            go build -trimpath -ldflags "-checklinkname=0 -s -w" -o goecs-bin .
             
             echo "Packaging macOS app with fyne..."
-            fyne package -os darwin -name goecs --exe goecs-bin --app-version "${{ needs.prepare.outputs.app_version }}"
+            fyne package -os darwin -name goecs --exe goecs-bin --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             if [ -d goecs.app ]; then
               mkdir -p .build
@@ -263,7 +266,7 @@ jobs:
           else
             # Windows 直接使用 fyne package
             echo "Building ${{ matrix.platform }} with fyne package..."
-            fyne package -os ${{ matrix.platform }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}"
+            fyne package -os ${{ matrix.platform }} -name goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
             
             if [ "${{ matrix.platform }}" == "windows" ]; then
               if [ -f goecs.exe ]; then
