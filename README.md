@@ -1,51 +1,51 @@
-# 融合怪GUI版本
+# GOECS GUI Version
 
-[![Build All UI APP](https://github.com/oneclickvirt/ecs/actions/workflows/build-all.yml/badge.svg)](https://github.com/oneclickvirt/ecs/actions/workflows/build-all.yml)
+[![Build All UI APP](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml/badge.svg)](https://github.com/oneclickvirt/ecs/actions/workflows/build.yml)
 
-一个基于 Fyne 框架的跨平台测试工具，支持 Android、macOS、Windows。
+A cross-platform testing tool based on the Fyne framework, supporting Android, macOS, and Windows.
 
-## 支持的平台
+## Supported Platforms
 
 ### Android
-- Android 7.0 (API Level 24) 或更高版本
-- 建议 Android 13 (API Level 33) 以获得最佳体验
-- 支持架构：ARM64、x86_64
+- Android 7.0 (API Level 24) or higher
+- Android 13 (API Level 33) recommended for best experience
+- Supported architectures: ARM64, x86_64
 
 ### macOS
-- macOS 11.0 或更高版本
-- 支持架构：Apple Silicon (ARM64)、Intel (AMD64)
+- macOS 11.0 or higher
+- Supported architectures: Apple Silicon (ARM64), Intel (AMD64)
 
 ### Windows
-- Windows 10 或更高版本
-- 支持架构：ARM64、AMD64
+- Windows 10 or higher
+- Supported architectures: ARM64, AMD64
 
-## 本地构建
+## Local Build
 
-### 前置要求
+### Prerequisites
 
 1. Go 1.25.3
 2. Android SDK
 3. Android NDK 25.2.9519653
 4. JDK 17+
 
-### 环境配置
+### Environment Setup
 
 ```bash
-# 设置 Android NDK 路径
+# Set Android NDK path
 export ANDROID_NDK_HOME=/path/to/android-ndk
 
-# 安装 Fyne CLI
+# Install Fyne CLI
 go install fyne.io/fyne/v2/cmd/fyne@latest
 ```
 
-### 构建命令
+### Build Commands
 
 ```bash
-# Android 构建前准备：需要先准备 ECS 二进制文件
-# 从 ECS 项目编译 Linux 二进制并放入 jniLibs 目录
-# 详见 jniLibs/README.md
+# Preparation before Android build: ECS binary files need to be prepared first
+# Compile Linux binaries from the ECS project and place them in the jniLibs directory
+# See jniLibs/README.md for details
 
-# 快速准备命令（假设 ecs 项目在 ../ecs）
+# Quick preparation command (assuming ecs project is in ../ecs)
 cd ../ecs && \
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -checklinkname=0" -o goecs-linux-arm64 ./ && \
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -checklinkname=0" -o goecs-linux-amd64 ./ && \
@@ -54,52 +54,52 @@ cp ../ecs/goecs-linux-arm64 jniLibs/arm64-v8a/libgoecs.so && \
 cp ../ecs/goecs-linux-amd64 jniLibs/x86_64/libgoecs.so && \
 chmod 755 jniLibs/*/libgoecs.so
 
-# 构建桌面端（用于快速测试）
+# Build desktop version (for quick testing)
 ./build.sh desktop
 
-# 构建 Android APK (arm64 + x86_64)
+# Build Android APK (arm64 + x86_64)
 ./build.sh android
 
-# 构建 macOS 应用 (arm64 + amd64)
+# Build macOS application (arm64 + amd64)
 ./build.sh macos
 
-# 构建 Windows 应用 (arm64 + amd64)
+# Build Windows application (arm64 + amd64)
 ./build.sh windows
 
-# 构建所有平台
+# Build all platforms
 ./build.sh all
 ```
 
-构建产物将输出到 `.build/` 目录。
+Build artifacts will be output to the `.build/` directory.
 
-### 构建产物说明
+### Build Artifacts Description
 
-- **Android**: `.apk` 文件
-  - `goecs-android-arm64-*.apk` - ARM64 版本（真机）
-  - `goecs-android-x86_64-*.apk` - x86_64 版本（模拟器）
+- **Android**: `.apk` files
+  - `goecs-android-arm64-*.apk` - ARM64 version (physical device)
+  - `goecs-android-x86_64-*.apk` - x86_64 version (emulator)
 
-- **macOS**: `.tar.gz` 压缩包（包含 `.app` 应用）
-  - `goecs-macos-arm64-*.tar.gz` - Apple Silicon 版本
-  - `goecs-macos-amd64-*.tar.gz` - Intel 版本
+- **macOS**: `.tar.gz` archives (containing `.app` application)
+  - `goecs-macos-arm64-*.tar.gz` - Apple Silicon version
+  - `goecs-macos-amd64-*.tar.gz` - Intel version
 
-- **Windows**: `.exe` 可执行文件
-  - `goecs-windows-arm64-*.exe` - ARM64 版本
-  - `goecs-windows-amd64-*.exe` - AMD64 版本
+- **Windows**: `.exe` executable files
+  - `goecs-windows-arm64-*.exe` - ARM64 version
+  - `goecs-windows-amd64-*.exe` - AMD64 version
 
-## 开发
+## Development
 
 ```bash
-# 克隆仓库
+# Clone repository
 git clone https://github.com/oneclickvirt/ecs.git
 cd ecs
 
-# 切换到 Android 开发分支
+# Switch to Android development branch
 git checkout android-app
 
-# 安装依赖
+# Install dependencies
 go mod download
 
-# 运行桌面版本（用于开发测试）
+# Run desktop version (for development testing)
 go run -ldflags="-checklinkname=0" .
 ```
 

@@ -3,7 +3,7 @@ name: Build All UI APP
 on:
   push:
     branches:
-      - 'android-app'
+      - 'gui'
   workflow_dispatch:
 
 jobs:
