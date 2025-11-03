@@ -101,10 +101,9 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
+          GOFLAGS: "-ldflags=-s -w -checklinkname=0"
         run: |
-          fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" \
-            --ldflags "-s -w -checklinkname=0" \
-            --release
+          fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
             mkdir -p .build
             mv *.apk .build/goecs-gui-android-arm64-${{ needs.prepare.outputs.version }}.apk
@@ -119,10 +118,9 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
+          GOFLAGS: "-ldflags=-s -w -checklinkname=0"
         run: |
-          fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" \
-            --ldflags "-s -w -checklinkname=0" \
-            --release
+          fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
             mv *.apk .build/goecs-gui-android-x86_64-${{ needs.prepare.outputs.version }}.apk
             echo "x86_64 APK 构建成功"
