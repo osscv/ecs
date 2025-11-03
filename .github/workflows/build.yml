@@ -101,7 +101,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
-          GOFLAGS: "-ldflags=-s -w -checklinkname=0"
         run: |
           fyne package --os android --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
@@ -118,7 +117,6 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           GOPRIVATE: github.com/oneclickvirt/security
-          GOFLAGS: "-ldflags=-s -w -checklinkname=0"
         run: |
           fyne package --os android/amd64 --app-id com.oneclickvirt.goecs --app-version "${{ needs.prepare.outputs.app_version }}" --release
           if [ -f *.apk ]; then
