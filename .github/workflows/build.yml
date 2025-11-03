@@ -97,26 +97,6 @@ jobs:
           sed -i "s/Version = .*/Version = \"${{ needs.prepare.outputs.version }}\"/" FyneApp.toml
           cat FyneApp.toml
       
-      - name: Clean vendor binaries for Android
-        run: |
-          echo "Cleaning unnecessary vendor binaries..."
-          # 删除不需要的平台二进制文件
-          find vendor -type f \( \
-            -name "*-darwin-*" -o \
-            -name "*-windows-*" -o \
-            -name "*-freebsd-*" -o \
-            -name "*-linux-386" -o \
-            -name "*-linux-mips*" -o \
-            -name "*-linux-ppc64*" -o \
-            -name "*-linux-s390x" -o \
-            -name "*.exe" \
-          \) -delete
-          
-          # 只保留 arm64 和 amd64 的二进制文件
-          echo "Vendor size after cleanup:"
-          du -sh vendor/
-
-      
       - name: Build Android APK (arm64)
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
