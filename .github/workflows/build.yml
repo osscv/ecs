@@ -74,8 +74,8 @@ jobs:
       
       - name: Install Android Build Tools
         run: |
-          sdkmanager --install "build-tools;33.0.2"
-          sdkmanager --install "platforms;android-33"
+          sdkmanager --install "build-tools;34.0.0"
+          sdkmanager --install "platforms;android-34"
       
       - name: Configure Git for Private Modules
         run: |
@@ -186,7 +186,7 @@ jobs:
       - name: Sign APK files
         run: |
           # 安装 apksigner (包含在 Android build-tools 中)
-          BUILD_TOOLS_VERSION="33.0.2"
+          BUILD_TOOLS_VERSION="34.0.0"
           APKSIGNER="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner"
           
           if [ ! -f "$APKSIGNER" ]; then

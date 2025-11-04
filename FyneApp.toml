@@ -9,5 +9,5 @@ Build = 1
 
 [Android]
 MinVersion = 24
-TargetVersion = 33
+TargetVersion = 34
 Arch = ["arm64", "x86_64"]
