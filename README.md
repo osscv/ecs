@@ -7,19 +7,23 @@
 ## 支持平台
 
 ### Android
+- Action编译已自签证书
 - 最低版本: Android 7.0 (API Level 24)
 - 推荐版本: Android 13 (API Level 33) 或更高
 - 支持架构: ARM64, x86_64
 
 ### macOS
+- Action编译未自签证书
 - 最低版本: macOS 11.0
 - 支持架构: Apple Silicon (ARM64), Intel (AMD64)
 
 ### Windows
+- Action编译未自签证书
 - 最低版本: Windows 10
 - 支持架构: ARM64, AMD64
 
 ### Linux
+- Action未编译
 - 支持架构: ARM64, AMD64
 
 ## 本地构建
